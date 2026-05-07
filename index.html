@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to PPT Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <style>
+        :root {
+            --google-bg: rgb(240, 243, 248);
+            --google-blue: #1a73e8;
+            --google-blue-hover: #1557b0;
+            --google-text: #3c4043;
+            --glass-shadow: 0 10px 30px rgba(0,0,0,0.08), -1px 0 2px rgba(0,255,255,0.1), 1px 0 2px rgba(255,0,0,0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            background-color: var(--google-bg);
+            color: var(--google-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .dev-icon {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            cursor: pointer;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.8);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+        }
+
+        .dev-icon:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            padding: 45px;
+            border-radius: 28px;
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: var(--glass-shadow);
+            width: 90%;
+            max-width: 520px;
+            text-align: center;
+            animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transform-origin: center bottom;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        #drop-zone {
+            border: 2px dashed #dadce0;
+            border-radius: 16px;
+            padding: 65px 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,0.5);
+        }
+
+        #drop-zone.hover {
+            border-color: var(--google-blue);
+            transform: scale(1.02);
+            background: rgba(26, 115, 232, 0.05);
+        }
+
+        #drop-zone p {
+            position: relative;
+            z-index: 1;
+            font-size: 16px;
+            font-weight: 500;
+            color: #5f6368;
+            pointer-events: none;
+        }
+
+        .btn {
+            background-color: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            margin: 15px auto;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 10px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn:hover {
+            background-color: var(--google-blue-hover);
+            transform: translateY(-2px);
+        }
+
+        #progress-container {
+            display: none;
+            margin-top: 25px;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e8eaed;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--google-blue);
+            border-radius: 5px;
+            transition: width 0.2s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        #status-text {
+            font-size: 14px;
+            margin-top: 12px;
+            color: #5f6368;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            width: 340px;
+            padding: 35px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.8);
+            line-height: 1.7;
+            font-size: 14px;
+            transform: scale(0.8) translateY(30px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .modal-content h3 { margin-top: 0; color: var(--google-blue); font-size: 20px; }
+        
+        .contact-list { 
+            text-align: left; 
+            background: rgba(248, 249, 250, 0.8); 
+            padding: 12px 15px; 
+            border-radius: 12px; 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 13px;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <img src="Developer.jpg" class="dev-icon" id="dev-trigger" alt="Developer">
+
+    <div class="container">
+        <h2 style="font-weight: 500; letter-spacing: -0.5px;">PDF 转 PPT <span style="font-size: 14px; color: #1a73e8; vertical-align: middle; background: #e8f0fe; padding: 2px 8px; border-radius: 10px;">Web</span></h2>
+        <div id="drop-zone">
+            <p>点击或将 PDF 拖入此处</p>
+            <input type="file" id="file-input" accept="application/pdf" style="display:none">
+        </div>
+
+        <div id="progress-container">
+            <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
+            <p id="status-text">准备转换...</p>
+            <p id="slow-notice" style="display:none; color: #d93025; font-weight: 500; font-size: 13px; margin-top: 5px;">
+                你可能遇见了一些性能问题，请等待，这不会太久…
+            </p>
+        </div>
+
+        <button id="download-btn" class="btn">下载.PPTX</button>
+    </div>
+
+    <div id="dev-modal" class="modal">
+        <div class="modal-content">
+            <h3>开发者：Lumis</h3>
+            <p>这是靠一只狗对语音识别系统狂吠制造出来的用于转换 PDF 为 PPT 程序。仅此而已。</p>
+            <div class="contact-list">
+                Lumis_photograph@outlook.com<br>
+                leicaoptics3017@gmail.com<br>
+                leicaoptics@qq.com<br>
+                Lumis_photograph@163.com<br>
+                +86 138 3079 1385
+            </div>
+            <p style="font-size: 12px; color: #70757a; margin-top: 20px; text-align: center;">这只狗使用了许多开源项目，他对此很感谢。</p>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('fill');
+        const statusText = document.getElementById('status-text');
+        const slowNotice = document.getElementById('slow-notice');
+        const downloadBtn = document.getElementById('download-btn');
+        const modal = document.getElementById('dev-modal');
+        const devTrigger = document.getElementById('dev-trigger');
+        let generatedPptx = null;
+
+        devTrigger.onclick = () => modal.classList.add('show');
+        modal.onclick = () => modal.classList.remove('show');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('hover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('hover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('hover');
+            handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function handleFile(file) {
+            if (!file) return;
+            if (file.type !== 'application/pdf') {
+                alert('文件类型不匹配，请上传 PDF 文件');
+                return;
+            }
+            startConversion(file);
+        }
+
+        async function startConversion(file) {
+            progressContainer.style.display = 'block';
+            downloadBtn.style.display = 'none';
+            slowNotice.style.display = 'none';
+            progressFill.style.width = '0%';
+            
+            const slowTimer = setTimeout(() => {
+                slowNotice.style.display = 'block';
+            }, 8000);
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const pptx = new PptxGenJS();
+                const totalPages = pdf.numPages;
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    statusText.innerText = `正在处理第 ${i} / ${totalPages} 页...`;
+                    
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.0 }); 
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    const slide = pptx.addSlide();
+                    slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+
+                    const textContent = await page.getTextContent();
+                    const textViewport = page.getViewport({ scale: 1.0 });
+                    
+                    textContent.items.forEach(item => {
+                        if (item.str.trim() === '') return;
+                        const tx = item.transform;
+                        const x = (tx[4] / textViewport.width) * 100;
+                        const y = (1 - (tx[5] / textViewport.height)) * 100;
+                        const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * 0.7;
+
+                        slide.addText(item.str, {
+                            x: `${x}%`,
+                            y: `${y}%`,
+                            fontSize: fontSize,
+                            color: '000000',
+                            fill: { color: 'FFFFFF', transparency: 100 }
+                        });
+                    });
+
+                    const progress = (i / totalPages) * 100;
+                    progressFill.style.width = progress + '%';
+                    
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+
+                generatedPptx = pptx;
+                clearTimeout(slowTimer);
+                statusText.innerText = "转换成功！";
+                downloadBtn.style.display = 'block';
+                downloadBtn.onclick = () => pptx.writeFile({ fileName: file.name.replace('.pdf', '.pptx') });
+            } catch (err) {
+                clearTimeout(slowTimer);
+                statusText.innerText = "错误，请重试";
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

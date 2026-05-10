@@ -284,7 +284,7 @@
     <div id="dev-modal" class="modal">
         <div class="modal-content">
             <h3>开发者：Lumis</h3>
-            <p>这是靠一只狗对语音识别系统狂吠制造出来的用于转换 PDF 为 PPT 程序。仅此而已。</p>
+            <p>这是靠一只狗对语音识别系统狂吠制造出来的用于转换 PDF 为其他文件的程序</p>
             <div class="contact-list">
                 Lumis_photograph@outlook.com<br>
                 leicaoptics3017@gmail.com<br>
@@ -378,7 +378,7 @@
             if (processedCount > 0) {
                 loadingOverlay.classList.remove('active');
                 downloadBtn.style.display = 'block';
-                downloadBtn.innerText = '保存转换结果';
+                downloadBtn.innerText = '下载转换后文件';
                 
                 downloadBtn.onclick = async () => {
                     downloadBtn.innerText = "正在准备下载内容...";

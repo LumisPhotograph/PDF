@@ -97,7 +97,7 @@
             border: 2px dashed #dadce0;
             border-radius: 16px;
             padding: 65px 20px;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             cursor: pointer;
             margin-bottom: 25px;
             position: relative;
@@ -109,6 +109,7 @@
             border-color: var(--google-blue);
             transform: scale(1.02);
             background: rgba(26, 115, 232, 0.05);
+            box-shadow: 0 10px 20px rgba(26, 115, 232, 0.1);
         }
 
         #drop-zone p {
@@ -149,40 +150,48 @@
         #loading-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
             z-index: 9999;
             display: flex;
             justify-content: center;
             align-items: center;
             visibility: hidden;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
         #loading-overlay.active {
             visibility: visible;
             opacity: 1;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
         }
 
         .progress-box {
             background: rgba(255, 255, 255, 0.95);
             padding: 40px 50px;
-            border-radius: 24px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
             text-align: center;
-            border: 1px solid rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,1);
+            transform: scale(0.9);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #loading-overlay.active .progress-box {
+            transform: scale(1);
         }
 
         .spinner {
-            width: 36px;
-            height: 36px;
-            border: 4px solid rgba(26, 115, 232, 0.2);
+            width: 42px;
+            height: 42px;
+            border: 4px solid rgba(26, 115, 232, 0.1);
             border-top: 4px solid var(--google-blue);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px auto;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            margin: 0 auto 20px auto;
         }
 
         @keyframes spin {
@@ -191,8 +200,8 @@
         }
 
         #status-text {
-            font-size: 15px;
-            color: #3c4043;
+            font-size: 16px;
+            color: #202124;
             margin: 0;
             font-weight: 500;
         }
@@ -200,7 +209,7 @@
         .modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.3);
             backdrop-filter: blur(0px);
             -webkit-backdrop-filter: blur(0px);
             z-index: 10000;
@@ -215,20 +224,19 @@
         .modal.show {
             opacity: 1;
             visibility: visible;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .modal-content {
-            background: rgba(255, 255, 255, 0.95);
+            background: white;
             width: 340px;
             padding: 35px;
-            border-radius: 24px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.8);
+            border-radius: 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
             line-height: 1.7;
             font-size: 14px;
-            transform: scale(0.8) translateY(30px);
+            transform: scale(0.85) translateY(30px);
             opacity: 0;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -242,11 +250,12 @@
         
         .contact-list { 
             text-align: left; 
-            background: rgba(248, 249, 250, 0.8); 
-            padding: 12px 15px; 
-            border-radius: 12px; 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 16px; 
             font-family: 'Courier New', Courier, monospace; 
             font-size: 13px;
+            border: 1px solid #eee;
         }
     </style>
 </head>
@@ -284,7 +293,7 @@
     <div id="dev-modal" class="modal">
         <div class="modal-content">
             <h3>开发者：Lumis</h3>
-            <p>这是靠一只狗对语音识别系统狂吠制造出来的用于转换 PDF 为其他文件的程序</p>
+            <p>这是靠一只狗对语音识别系统狂吠制造出来的用于转换 PDF 为其他格式 程序。仅此而已。</p>
             <div class="contact-list">
                 Lumis_photograph@outlook.com<br>
                 leicaoptics3017@gmail.com<br>
@@ -360,13 +369,8 @@
                         processedCount++;
                     } else if (exportFormat === 'docx') {
                         const docxBlob = await convertToDocx(pdf);
-                        if (docxBlob) {
-                            globalZip.file(`${baseName}.docx`, docxBlob);
-                            processedCount++;
-                        } else {
-                            statusText.innerText = "未提取到有效文字";
-                            await new Promise(r => setTimeout(r, 1500));
-                        }
+                        globalZip.file(`${baseName}.docx`, docxBlob);
+                        processedCount++;
                     }
                 } catch (err) {
                     console.error(err);
@@ -378,10 +382,10 @@
             if (processedCount > 0) {
                 loadingOverlay.classList.remove('active');
                 downloadBtn.style.display = 'block';
-                downloadBtn.innerText = '下载转换后文件';
+                downloadBtn.innerText = '下载';
                 
                 downloadBtn.onclick = async () => {
-                    downloadBtn.innerText = "正在准备下载内容...";
+                    downloadBtn.innerText = "准备下载内容...";
                     downloadBtn.disabled = true;
                     try {
                         const zipFiles = Object.keys(globalZip.files);
@@ -391,58 +395,45 @@
                             saveAs(blob, zipFiles[0]);
                         } else {
                             const content = await globalZip.generateAsync({ type: "blob" });
-                            saveAs(content, `PDF_Converted_Files_${Date.now()}.zip`);
+                            saveAs(content, `PDF_Converted_${Date.now()}.zip`);
                         }
-                        downloadBtn.innerText = "下载 或继续转换";
+                        downloadBtn.innerText = "下载完成";
                     } catch (e) {
                         downloadBtn.innerText = "失败 请重试";
-                        console.error(e);
                     } finally {
                         downloadBtn.disabled = false;
                     }
                 };
             } else {
-                if (statusText.innerText !== "未提取到有效文字") {
-                    statusText.innerText = "错误：未发现有效文件";
-                }
-                setTimeout(() => {
-                    loadingOverlay.classList.remove('active');
-                }, 2000);
+                statusText.innerText = "非有效文件";
+                setTimeout(() => loadingOverlay.classList.remove('active'), 2000);
             }
-
             fileInput.value = '';
         }
 
         async function convertToPptx(pdf) {
             const pptx = new PptxGenJS();
             const totalPages = pdf.numPages;
-            
             for (let i = 1; i <= totalPages; i++) {
                 statusText.innerText = `处理 PPTX: 第 ${i} / ${totalPages} 页...`;
-                
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: 2.0 }); 
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
-                
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
-                
                 const imgData = canvas.toDataURL('image/jpeg', 0.8);
                 const slide = pptx.addSlide();
                 slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
-
                 const textContent = await page.getTextContent();
                 const textViewport = page.getViewport({ scale: 1.0 });
-                
                 textContent.items.forEach(item => {
                     if (item.str.trim() === '') return;
                     const tx = item.transform;
                     const x = (tx[4] / textViewport.width) * 100;
                     const y = (1 - (tx[5] / textViewport.height)) * 100;
                     const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * 0.7;
-
                     slide.addText(item.str, {
                         x: `${x}%`,
                         y: `${y}%`,
@@ -451,7 +442,7 @@
                         fill: { color: 'FFFFFF', transparency: 100 }
                     });
                 });
-                await new Promise(resolve => requestAnimationFrame(resolve));
+                await new Promise(r => requestAnimationFrame(r));
             }
             return await pptx.write({ outputType: "blob" });
         }
@@ -459,49 +450,59 @@
         async function convertToJpg(pdf, targetZipFolder, baseName) {
             const totalPages = pdf.numPages;
             for (let i = 1; i <= totalPages; i++) {
-                statusText.innerText = `提取图片: 第 ${i} / ${totalPages} 页...`;
+                statusText.innerText = `图片: 第 ${i} / ${totalPages} 页...`;
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: 2.0 });
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
-                
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
                 const imgData = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-                
                 targetZipFolder.file(`${baseName}_Page_${i}.jpg`, imgData, {base64: true});
-                await new Promise(resolve => requestAnimationFrame(resolve));
+                await new Promise(r => requestAnimationFrame(r));
             }
         }
 
         async function convertToDocx(pdf) {
-            const paragraphs = [];
+            const sections = [];
             const totalPages = pdf.numPages;
-            let hasAnyText = false;
+            const children = [];
 
             for (let i = 1; i <= totalPages; i++) {
-                statusText.innerText = `提取文字: 第 ${i} / ${totalPages} 页...`;
+                statusText.innerText = `处理 Word: 第 ${i} / ${totalPages} 页...`;
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                
-                let pageText = textContent.items.map(item => item.str).join(" ");
-                if(pageText.trim() !== "") {
-                    hasAnyText = true;
-                    paragraphs.push(new docx.Paragraph({
-                        children: [new docx.TextRun(pageText)]
-                    }));
-                    paragraphs.push(new docx.Paragraph({ children: [new docx.TextRun("")] }));
-                }
-                await new Promise(resolve => requestAnimationFrame(resolve));
-            }
+                const text = textContent.items.map(item => item.str).join(" ").trim();
 
-            if(!hasAnyText) {
-                return null;
+                if (text.length > 0) {
+                    children.push(new docx.Paragraph({
+                        children: [new docx.TextRun({ text: text, size: 24 })]
+                    }));
+                } else {
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    children.push(new docx.Paragraph({
+                        children: [
+                            new docx.ImageRun({
+                                data: imgData,
+                                transformation: { width: 550, height: 550 * (viewport.height / viewport.width) }
+                            })
+                        ]
+                    }));
+                }
+                children.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
+                await new Promise(r => requestAnimationFrame(r));
             }
 
             const doc = new docx.Document({
-                sections: [{ properties: {}, children: paragraphs }]
+                sections: [{ properties: {}, children: children }]
             });
             return await docx.Packer.toBlob(doc);
         }
